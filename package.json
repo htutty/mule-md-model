@@ -1,0 +1,15 @@
+{
+  "name": "mule-markdown-model",
+  "version": "1.0.0",
+  "description": "",
+  "main": "outputMDdocFromFolder.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "jsdom": "^22.1.0",
+    "xmldom": "^0.6.0"
+  }
+}
