@@ -119,6 +119,14 @@ function parseInnerFlowNodes(nodes) {
                     cmp.children = parseInnerFlowNodes(node.childNodes);
                     components.push(cmp);
                     break;
+                case "http:listener":
+                        // http:listener のパース処理  
+                        var cmp = {name: "http-listener", type: "http-listener",
+                                        docid: node.getAttribute("doc:id"), path: node.getAttribute("path"),
+                                        configRef: node.getAttribute("config-ref") };
+                        cmp.children = parseInnerHttpListenerNode(node.childNodes);
+                        components.push(cmp);
+                    break;
                 case "file:write":
                     // file:write のパース処理  
                     var cmp = {name: node.getAttribute("doc:name"), type:"file-write",
@@ -387,8 +395,16 @@ function parseInnerErrorHandlerNode(nodes) {
 
         switch(node.tagName) {
             case "on-error-propagate":
-                // when のパース処理 ()
-                var cmp = {name: node.getAttribute("doc:name"), type:"on-error-propagate",
+                // on-error-propagate のパース処理 ()
+                var cmp = {name: node.getAttribute("doc:name"), type:"on-error-propagate", errorType:node.getAttribute("type"),
+                            docid: node.getAttribute("doc:id"), enableNotifications: node.getAttribute("enableNotifications"),
+                            logException: node.getAttribute("logException")};
+                cmp.children = parseInnerFlowNodes(node.childNodes);
+                components.push(cmp);
+                break;
+            case "on-error-continue":
+                // on-error-continue のパース処理 ()
+                var cmp = {name: node.getAttribute("doc:name"), type:"on-error-continue", errorType:node.getAttribute("type"),
                             docid: node.getAttribute("doc:id"), enableNotifications: node.getAttribute("enableNotifications"),
                             logException: node.getAttribute("logException")};
                 cmp.children = parseInnerFlowNodes(node.childNodes);
@@ -441,6 +457,75 @@ function parseInnerFileWriteNode(nodes) {
     return components;
 }
 
+// http:listener ノードの中身 http:response, error-response を処理する
+function parseInnerHttpListenerNode(nodes) {
+    let components = [];
+
+    for(var i=0; i < nodes.length; i++) {
+        const node = nodes[i];
+
+        if(node.tagName == undefined) {
+            continue;
+        }
+
+        console.log("- node = " + node.tagName);
+
+        switch(node.tagName) {
+            case "http:response":
+                // http:response のパース処理 ()
+                var cmp = {name: "http-response", type:"http-response",
+                            statusCode:  node.getAttribute("statusCode") };
+                cmp.children = parseInnerHttpResponseNode(node.childNodes);
+                components.push(cmp);
+                break;
+            case "http:error-response":
+                // http:error-response のパース処理 ()
+                var cmp = {name: "http-error-response", type:"http-error-response",
+                            statusCode:  node.getAttribute("statusCode") };
+                cmp.children = parseInnerHttpResponseNode(node.childNodes);
+                components.push(cmp);
+                break;
+        }
+    }
+
+    return components;
+}
+
+// http:response ノードの中身 http:headers, http:bodyを処理する
+function parseInnerHttpResponseNode(nodes) {
+    let components = [];
+
+    for(var i=0; i < nodes.length; i++) {
+        const node = nodes[i];
+
+        if(node.tagName == undefined) {
+            continue;
+        }
+
+        console.log("- node = " + node.tagName);
+
+        switch(node.tagName) {
+            case "http:headers":
+                // http:headers のパース処理 ()
+                var cmp = {name: "http-headers", type:"http-headers",
+                            content: node.textContent };
+                cmp.children = [];
+                components.push(cmp);
+                break;
+            case "http:body":
+                // http:body のパース処理 ()
+                var cmp = {name: "http-body", type:"http-body",
+                            content: node.textContent };
+                cmp.children = [];
+                components.push(cmp);
+                break;
+        }
+    }
+
+    return components;
+}
+
+
 // ftp:write ノードの中身 ftp:content を処理する
 function parseInnerFtpWriteNode(nodes) {
     let components = [];
@@ -456,7 +541,7 @@ function parseInnerFtpWriteNode(nodes) {
 
         switch(node.tagName) {
             case "ftp:content":
-                // when のパース処理 ()
+                // ftp:content のパース処理 ()
                 var cmp = {name: "ftp-content", type:"ftp-content",
                             content: node.textContent };
                 cmp.children = [];
@@ -467,6 +552,7 @@ function parseInnerFtpWriteNode(nodes) {
 
     return components;
 }
+
 
 // s3:put-object ノードの中身 s3:content を処理する
 function parseInnerS3PutObjectNode(nodes) {

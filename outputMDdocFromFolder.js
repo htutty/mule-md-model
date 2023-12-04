@@ -28,6 +28,8 @@ let allFlowRefList = [];
 let origTargetFolder = targetFolder;
 let nowXmlIdx = 0;
 
+let allDwHash = {};
+
 let allOutTexts = [];
 
 
@@ -77,7 +79,7 @@ function searchFolder(targetFolder) {
 			if (filename.indexOf(".dwl") >= filename.length - 5) {
 				console.log("found .dwl file: " + filename);
 				// console.log("path: " + targetFolder);
-				// parseDwlFile(targetFolder, filename, subPackageObj);
+				parseDwlFile(targetFolder, filename);
 			}
 		}
 	}
@@ -99,12 +101,12 @@ function parseXmlFile(targetFolder, targetFile) {
 	nowXmlIdx++;
 }
 
-
 function outputMarkdownFromJson(muleapp, targetXmlFilePath)
 {
 	console.log("outputMarkdownFromJson() start: " + targetXmlFilePath);
 
-	var fileText = "## " + targetXmlFilePath + "\r\n\r\n";
+	let fileText = "## " + targetXmlFilePath + "\r\n";
+	fileText = fileText +  "(" + muleapp.flows.length + " flows included)\r\n\r\n"
 	var flowText = "";
 
 	// flows
@@ -250,27 +252,25 @@ function makeComponentDetailText(seq, parentIdx, curCmp) {
 
 
 function parseDwlFile(targetFolder, dwlFile) {
+	
+	const dwText = readDwlFile(targetFolder + "\\" + dwlFile);
+	const targetFilePath = targetFolder.substring(origTargetFolder.length + 1) +
+	"/" + dwlFile;
+	let filetext = "## " + targetFilePath + "\r\n";
+	filetext = filetext +  "(" + dwText.split("\n").length + " lines included)\r\n\r\n"
 
+	// 全Dataweaveデータが入るHashにこのファイルの内容を登録
+	// allDwHash[targetFolder + "\\" + dwlFile] = dwText;
+
+	allOutTexts.push({fileText: filetext, diagramText: "", flowsText: "```\r\n" + dwText + "\r\n```\r\n"});
 }
 
 
 function readDwlFile(dwlfilepath) {
-	console.log("readDwlFile() start: " + dwlfilepath);
+    const text = fs.readFileSync(dwlfilepath, 'utf-8');
 
-	console.log("dwlfilepath=" + dwlfilepath);
-	
-	// var streams = new ActiveXObject( "ADODB.Stream" );
-	var streams = WScript.CreateObject( "ADODB.Stream" );
-	
-	streams.Charset = "UTF-8";
-	streams.Open();
-	streams.LoadFromFile(dwlfilepath);
-
-	var buf = streams.ReadText();
-	streams.Close();
-	streams = null;
-
-	return buf;
+	// console.log(text);
+    return text;
 }
 
 
@@ -306,7 +306,7 @@ function makeFlowRefDiagram() {
 		}
 
 		// flowsObjが空でない場合に限り
-		if (flowsObj != {}) {
+		if (Object.keys(flowsObj).length > 0) {
 			var diagramText = "\r\n```mermaid\r\ngraph LR\r\n" 
 			var flowDefText = "";
 			var refText = "";
