@@ -12,12 +12,12 @@ const parseXml2Json = require('./muleTransformToJson.js');
 // コマンドライン引数の取得
 if (process.argv.length <= 4) {
 	console.log("args.length=" + process.argv.length);
-	console.log("Usage: node outputMDdocFromFolder.js <path/to/mule-folder> title outputFilename");
+	console.log("Usage: node outputMDdocFromFolder.js <path/to/mule-folder> title outputFilePath");
     process.exit(1);
 }
 const targetFolder = process.argv[2];
 const docTitle = process.argv[3];
-const outputFilename = process.argv[4];
+const outputFilePath = process.argv[4];
 
 // console.log("targetFolder=" + targetFolder);
 
@@ -50,7 +50,7 @@ for (var i=0; i < allFlowRefList.length; i++) {
 makeFlowRefDiagram();
 
 // markdownファイルとして出力
-outputMarkdownFile(outputFilename);
+outputMarkdownFile(outputFilePath);
 
 
 function searchFolder(targetFolder) {
@@ -125,7 +125,7 @@ function outputMarkdownFromJson(muleapp, targetXmlFilePath)
 		allFlowHash[curFlow.name] = aflow;
 	}
 
-	allOutTexts.push({fileText: fileText, diagramText: "", flowsText: flowText});
+	allOutTexts.push({targetFilePath: targetXmlFilePath, fileText: fileText, diagramText: "", flowsText: flowText});
 }
 
 
@@ -254,15 +254,14 @@ function makeComponentDetailText(seq, parentIdx, curCmp) {
 function parseDwlFile(targetFolder, dwlFile) {
 	
 	const dwText = readDwlFile(targetFolder + "\\" + dwlFile);
-	const targetFilePath = targetFolder.substring(origTargetFolder.length + 1) +
-	"/" + dwlFile;
+	const targetFilePath = targetFolder.substring(origTargetFolder.length + 1) + "/" + dwlFile;
 	let filetext = "## " + targetFilePath + "\r\n";
 	filetext = filetext +  "(" + dwText.split("\n").length + " lines included)\r\n\r\n"
 
 	// 全Dataweaveデータが入るHashにこのファイルの内容を登録
 	// allDwHash[targetFolder + "\\" + dwlFile] = dwText;
 
-	allOutTexts.push({fileText: filetext, diagramText: "", flowsText: "```\r\n" + dwText + "\r\n```\r\n"});
+	allOutTexts.push({targetFilePath: targetFilePath, fileText: filetext, diagramText: "", flowsText: "```\r\n" + dwText + "\r\n```\r\n"});
 }
 
 
@@ -337,20 +336,29 @@ function makeFlowRefDiagram() {
 }
 
 
-function outputMarkdownFile(outputFilename) {
-	var outText = "";
-	outText = outText + "# " + docTitle + "\r\n\r\n";
+function outputMarkdownFile(outputFilePath) {
+
 
 	for (var i=0; i < allOutTexts.length; i++) {
+		var outText = "";
+		outText = outText + "# " + docTitle + "\r\n\r\n";
+
 		var obj = allOutTexts[i];
 		outText = outText + obj.fileText;
 		outText = outText + obj.diagramText;
 		outText = outText + obj.flowsText;
+
+		fs.writeFileSync(getPathToOutFilename(obj.targetFilePath), outText);
 	}
 
-	fs.writeFileSync(outputFilename, outText);
+	// fs.writeFileSync(outputFilename, outText);
 }
 
+function getPathToOutFilename(origFilename) { 
+	makeDirectory("output/" + outputFilePath );
+
+	return "output/" + outputFilePath + "/" + origFilename.replaceAll("/", "#",) + ".md";
+}
 
 
 function paddingZero(num, digit) {
@@ -386,3 +394,11 @@ function indentText(nestLv) {
 function getLinkText(orig) {
 	return orig.toLowerCase();
 }
+
+
+function makeDirectory(path) {
+	fs.mkdir(path, { recursive: true }, (err) => {
+		if (err) throw err;
+	});
+}
+
